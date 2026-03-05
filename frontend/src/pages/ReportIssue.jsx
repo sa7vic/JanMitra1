@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { AlertCircle, DollarSign, Droplet, Zap, MapPin, Camera, Send, CheckCircle } from 'lucide-react';
+import { AlertCircle, DollarSign, Droplet, Zap, MapPin, Camera, Send, CheckCircle, X, Upload, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ReportIssue = () => {
@@ -20,6 +20,14 @@ const ReportIssue = () => {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoError, setPhotoError] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic'];
+  const MAX_SIZE_MB = 5;
 
   const reportTypes = [
     {
@@ -77,25 +85,81 @@ const ReportIssue = () => {
     setStep(2);
   };
 
+  const handlePhotoChange = (e) => {
+    setPhotoError(null);
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setPhotoError('Invalid file type. Allowed: JPG, PNG, GIF, WebP, HEIC');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setPhotoError(`File too large. Maximum size is ${MAX_SIZE_MB} MB`);
+      e.target.value = '';
+      return;
+    }
+
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPhotoPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setSubmitError(null);
 
     try {
-      const reportData = {
-        ...formData,
-        data: JSON.stringify(formData.data)
-      };
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      await axios.post('http://localhost:5000/api/reports', reportData);
+      if (photoFile) {
+        // Send as multipart/form-data when a photo is attached
+        const fd = new FormData();
+        fd.append('report_type', formData.report_type);
+        fd.append('title', formData.title);
+        fd.append('description', formData.description);
+        fd.append('location', formData.location);
+        fd.append('city', formData.city);
+        fd.append('state', formData.state);
+        fd.append('data', JSON.stringify(formData.data));
+        fd.append('photo', photoFile);
+
+        await axios.post('http://localhost:5000/api/reports', fd, {
+          headers: { ...headers },  // axios sets Content-Type automatically for FormData
+        });
+      } else {
+        // JSON submission (no photo)
+        const reportData = {
+          ...formData,
+          data: JSON.stringify(formData.data),
+        };
+        await axios.post('http://localhost:5000/api/reports', reportData, {
+          headers: { ...headers, 'Content-Type': 'application/json' },
+        });
+      }
+
       setSuccess(true);
-      
       setTimeout(() => {
         navigate('/my-reports');
       }, 2000);
     } catch (error) {
       console.error('Failed to submit report:', error);
-      alert('Failed to submit report. Please try again.');
+      const msg =
+        error?.response?.data?.error ||
+        'Failed to submit report. Please try again.';
+      setSubmitError(msg);
     } finally {
       setLoading(false);
     }
@@ -412,11 +476,88 @@ const ReportIssue = () => {
                 </div>
               </div>
 
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-                <h4 className="font-bold text-blue-900 mb-2">📸 Photo Evidence (Coming Soon)</h4>
-                <p className="text-sm text-blue-700">
-                  Soon you'll be able to attach photos to your reports for better verification.
+              {/* ── Photo Upload ── */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">📸 Photo Evidence</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Attach a photo to help verify your report faster (JPG, PNG, WebP · max {MAX_SIZE_MB} MB)
                 </p>
+
+                <AnimatePresence mode="wait">
+                  {photoPreview ? (
+                    <motion.div
+                      key="preview"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="relative rounded-xl overflow-hidden border-2 border-primary-300 shadow-md"
+                    >
+                      <img
+                        src={photoPreview}
+                        alt="Preview"
+                        className="w-full max-h-72 object-cover"
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="bg-white/90 hover:bg-white text-gray-700 rounded-full p-1.5 shadow transition"
+                          title="Replace photo"
+                        >
+                          <Image className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-1.5 shadow transition"
+                          title="Remove photo"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 px-3 py-2 bg-gray-50">
+                        {photoFile?.name} &nbsp;·&nbsp; {(photoFile?.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="picker"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full border-2 border-dashed border-gray-300 hover:border-primary-400 rounded-xl p-8 flex flex-col items-center gap-3 text-gray-500 hover:text-primary-600 transition-colors cursor-pointer bg-gray-50 hover:bg-primary-50"
+                      >
+                        <Upload className="w-10 h-10" />
+                        <span className="font-medium">Click to attach a photo</span>
+                        <span className="text-xs">JPG, PNG, GIF, WebP, HEIC up to {MAX_SIZE_MB} MB</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+
+                {photoError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-2 text-sm text-red-600 flex items-center gap-1"
+                  >
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {photoError}
+                  </motion.p>
+                )}
               </div>
 
               <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
@@ -428,6 +569,17 @@ const ReportIssue = () => {
                   <li>• Earn reputation points for contributing</li>
                 </ul>
               </div>
+
+              {submitError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-start gap-2 text-red-700 text-sm"
+                >
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  {submitError}
+                </motion.div>
+              )}
 
               <div className="flex items-center space-x-4 pt-6">
                 <button
@@ -443,7 +595,13 @@ const ReportIssue = () => {
                   className="flex-1 py-3 gradient-saffron text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
                 >
                   {loading ? (
-                    <span>Submitting...</span>
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      {photoFile ? 'Uploading & Submitting...' : 'Submitting...'}
+                    </span>
                   ) : (
                     <>
                       <Send className="w-5 h-5" />

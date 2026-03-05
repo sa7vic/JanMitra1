@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Shield, Globe } from 'lucide-react';
+import { ArrowRight, Zap, Shield, Globe, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Hero = () => {
+  const whatsappNumber = '14155238886';
+  const joinCode = 'join rod-choose';
+  
   const features = [
     { icon: Zap, text: 'Real-time Intelligence' },
     { icon: Shield, text: 'Fact Verification' },
@@ -56,6 +59,28 @@ const Hero = () => {
             >
               Learn More
             </a>
+
+            <motion.button
+              onClick={() => {
+                const encodedMessage = encodeURIComponent(joinCode);
+                window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, '_blank');
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              style={{
+                backgroundColor: '#16a34a',
+                color: '#ffffff',
+                border: 'none'
+              }}
+              className="px-8 py-4 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center justify-center space-x-2 group cursor-pointer"
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#15803d'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
+            >
+              <MessageCircle style={{ color: 'white' }} className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <span style={{ color: 'white' }}>Chat on WhatsApp</span>
+              <span style={{ backgroundColor: 'white', color: '#16a34a' }} className="text-xs px-2 py-1 rounded-full font-bold">NEW</span>
+            </motion.button>
           </div>
 
           <div className="flex flex-wrap justify-center gap-8 mt-16">

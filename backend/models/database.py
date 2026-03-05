@@ -377,6 +377,34 @@ class FactCheck(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
+class WhatsAppConversation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phone_number = db.Column(db.String(20), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    response = db.Column(db.Text)
+    message_type = db.Column(db.String(20), default='incoming')  # incoming or outgoing
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    session_id = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='pending')  # pending, processed, failed
+    error_message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='whatsapp_conversations')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'phone_number': self.phone_number,
+            'message': self.message,
+            'response': self.response,
+            'message_type': self.message_type,
+            'user_id': self.user_id,
+            'session_id': self.session_id,
+            'status': self.status,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat()
+        }
+
 def init_db(app):
     db.init_app(app)
     with app.app_context():

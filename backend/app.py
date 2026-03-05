@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, verify_jwt_in_request
 from config import Config
-from models.database import db, init_db, Article, Entity, Relationship, Prediction, User, CitizenReport, Scheme, FactCheck, UserAlert, UserScheme
+from models.database import db, init_db, Article, Entity, Relationship, Prediction, User, CitizenReport, Scheme, FactCheck, UserAlert, UserScheme, WhatsAppConversation
 from services.data_collector import DataCollector
 from services.ai_processor import AIProcessor
 from services.auto_scheduler import start_scheduler
@@ -11,7 +11,9 @@ from services.fact_checker import FactChecker
 from services.scheme_matcher import SchemeMatcher
 from services.citizen_intel import CitizenIntel
 from services.alert_generator import AlertGenerator
+from services.upload_service import validate_image_file, upload_report_image
 from routes.auth import auth_bp
+from routes.whatsapp import whatsapp_bp
 from datetime import datetime
 import os
 import json
@@ -38,6 +40,7 @@ init_db(app)
 jwt = JWTManager(app)
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(whatsapp_bp, url_prefix='/api/whatsapp')
 
 collector = DataCollector()
 ai_processor = AIProcessor()
@@ -187,14 +190,53 @@ def get_scheme_detail(scheme_id):
 def handle_reports():
     if request.method == 'POST':
         try:
+            verify_jwt_in_request()   # validates token from Authorization header
             current_user_id = get_jwt_identity()
             user_id = int(current_user_id)
-        except:
+        except Exception:
             return jsonify({'error': 'Authentication required'}), 401
-        
-        report_data = request.json
-        report = citizen_intel.submit_report(user_id, report_data)
-        
+
+        # Support both JSON and multipart/form-data submissions
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            # Collect text fields from form data
+            report_data = {
+                'report_type': request.form.get('report_type', ''),
+                'title': request.form.get('title', ''),
+                'description': request.form.get('description', ''),
+                'location': request.form.get('location', ''),
+                'city': request.form.get('city', ''),
+                'state': request.form.get('state', ''),
+                'data': request.form.get('data', '{}'),
+            }
+
+            # Handle optional photo upload
+            photo_url = None
+            if 'photo' in request.files:
+                photo_file = request.files['photo']
+                ok, err = validate_image_file(photo_file)
+                if not ok:
+                    return jsonify({'error': err}), 400
+                try:
+                    upload_result = upload_report_image(photo_file)
+                    photo_url = upload_result['url']
+                except Exception as upload_err:
+                    return jsonify({'error': f'Image upload failed: {str(upload_err)}'}), 500
+
+            report = citizen_intel.submit_report(user_id, report_data)
+
+            # Attach photo_url to the newly created report
+            if photo_url and report:
+                report_id = report.get('id')
+                if report_id:
+                    db_report = CitizenReport.query.get(report_id)
+                    if db_report:
+                        db_report.photo_url = photo_url
+                        db.session.commit()
+                        report['photo_url'] = photo_url
+        else:
+            report_data = request.json
+            report = citizen_intel.submit_report(user_id, report_data)
+
         return jsonify({
             'message': 'Report submitted successfully',
             'report': report
@@ -214,6 +256,51 @@ def handle_reports():
         reports = citizen_intel.get_reports(filters)
         
         return jsonify({'reports': reports})
+
+@app.route('/api/reports/<int:report_id>/upload-photo', methods=['POST'])
+@jwt_required()
+def upload_report_photo(report_id):
+    """Upload or replace the photo attached to an existing report.
+
+    Expects multipart/form-data with a 'photo' field.
+    Only the report owner or a gov/admin user may update the photo.
+    """
+    current_user_id = get_jwt_identity()
+
+    report = CitizenReport.query.get(report_id)
+    if not report:
+        return jsonify({'error': 'Report not found'}), 404
+
+    # Authorisation: only the owner or privileged roles
+    requesting_user = User.query.get(int(current_user_id))
+    if not requesting_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if report.user_id != int(current_user_id) and requesting_user.role not in ('gov', 'admin'):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo file provided'}), 400
+
+    photo_file = request.files['photo']
+    ok, err = validate_image_file(photo_file)
+    if not ok:
+        return jsonify({'error': err}), 400
+
+    try:
+        upload_result = upload_report_image(photo_file, report_id=report_id)
+    except Exception as e:
+        return jsonify({'error': f'Image upload failed: {str(e)}'}), 500
+
+    report.photo_url = upload_result['url']
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Photo uploaded successfully',
+        'photo_url': upload_result['url'],
+        'report_id': report_id,
+    })
+
 
 @app.route('/api/reports/<int:report_id>/upvote', methods=['POST'])
 @jwt_required()

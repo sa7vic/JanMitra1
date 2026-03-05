@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Activity, LogOut, User, Settings, Bell } from 'lucide-react';
+import { Menu, X, Activity, LogOut, User, Settings, Bell, MessageCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
@@ -10,6 +10,11 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
+
+  // WhatsApp configuration
+  const whatsappNumber = '14155238886';
+  const joinCode = 'join rod-choose';
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(joinCode)}`;
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -62,6 +67,17 @@ const Navbar = () => {
 
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative p-2 text-green-600 hover:text-green-700 transition group"
+                  title="Chat on WhatsApp"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                </a>
+
                 <Link
                   to="/alerts"
                   className="relative p-2 text-gray-700 hover:text-primary-600 transition"
@@ -135,6 +151,16 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-4">
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center space-x-1"
+                  title="Chat on WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="hidden lg:inline">WhatsApp</span>
+                </a>
                 <Link
                   to="/login"
                   className="text-sm font-medium text-gray-700 hover:text-primary-600"
@@ -186,6 +212,17 @@ const Navbar = () => {
             ))}
             {isAuthenticated ? (
               <>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-green-600 hover:bg-green-50"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Chat on WhatsApp</span>
+                  <span className="ml-auto text-xs bg-green-100 px-2 py-1 rounded-full">NEW</span>
+                </a>
                 <Link
                   to="/profile"
                   onClick={() => setIsOpen(false)}
@@ -205,6 +242,17 @@ const Navbar = () => {
               </>
             ) : (
               <>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-green-600 hover:bg-green-50"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Chat on WhatsApp</span>
+                  <span className="ml-auto text-xs bg-green-100 px-2 py-1 rounded-full">NEW</span>
+                </a>
                 <Link
                   to="/login"
                   onClick={() => setIsOpen(false)}
