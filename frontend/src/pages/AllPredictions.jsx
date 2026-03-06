@@ -6,6 +6,7 @@ import {
   AlertTriangle, MapPin, Calendar, Filter, 
   Loader2, ChevronRight, TrendingUp 
 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const AllPredictions = () => {
   const [predictions, setPredictions] = useState([]);
@@ -19,7 +20,7 @@ const AllPredictions = () => {
 
   const fetchPredictions = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/predictions?status=active');
+      const response = await axios.get(`${API_BASE_URL}/api/predictions?status=active`);
       setPredictions(response.data.predictions);
     } catch (error) {
       console.error('Failed to fetch predictions:', error);

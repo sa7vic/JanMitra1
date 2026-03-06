@@ -5,6 +5,7 @@ import {
   Users, MapPin, Calendar, CheckCircle, 
   Clock, Filter, Loader2, TrendingUp 
 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const CitizenReports = () => {
   const [reports, setReports] = useState([]);
@@ -27,7 +28,7 @@ const CitizenReports = () => {
       if (filter.type !== 'all') params.append('type', filter.type);
       params.append('time_range', filter.time_range);
 
-      const response = await axios.get(`http://localhost:5000/api/reports?${params.toString()}`);
+      const response = await axios.get(`${API_BASE_URL}/api/reports?${params.toString()}`);
       setReports(response.data.reports);
     } catch (error) {
       console.error('Failed to fetch reports:', error);

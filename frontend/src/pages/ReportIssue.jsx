@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AlertCircle, DollarSign, Droplet, Zap, MapPin, Camera, Send, CheckCircle, X, Upload, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../lib/api';
 
 const ReportIssue = () => {
   const { user } = useAuth();
@@ -136,7 +137,7 @@ const ReportIssue = () => {
         fd.append('data', JSON.stringify(formData.data));
         fd.append('photo', photoFile);
 
-        await axios.post('http://localhost:5000/api/reports', fd, {
+        await axios.post(`${API_BASE_URL}/api/reports`, fd, {
           headers: { ...headers },  // axios sets Content-Type automatically for FormData
         });
       } else {
@@ -145,7 +146,7 @@ const ReportIssue = () => {
           ...formData,
           data: JSON.stringify(formData.data),
         };
-        await axios.post('http://localhost:5000/api/reports', reportData, {
+        await axios.post(`${API_BASE_URL}/api/reports`, reportData, {
           headers: { ...headers, 'Content-Type': 'application/json' },
         });
       }

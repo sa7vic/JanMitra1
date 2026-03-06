@@ -6,6 +6,7 @@ import {
   MapPin, Activity, Loader2, ChevronRight, Shield 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../lib/api';
 import IndiaMap from '../components/IndiaMap';
 
 const Government = () => {
@@ -22,9 +23,9 @@ const Government = () => {
   const fetchDashboardData = async () => {
     try {
       const [statsRes, predictionsRes, reportsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/stats'),
-        axios.get('http://localhost:5000/api/predictions?status=active'),
-        axios.get('http://localhost:5000/api/reports?verified=true&time_range=24')
+        axios.get(`${API_BASE_URL}/api/stats`),
+        axios.get(`${API_BASE_URL}/api/predictions?status=active`),
+        axios.get(`${API_BASE_URL}/api/reports?verified=true&time_range=24`)
       ]);
 
       setStats(statsRes.data);

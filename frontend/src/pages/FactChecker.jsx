@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { CheckCircle, XCircle, AlertCircle, HelpCircle, Search, Clock, Loader2, Share2, ThumbsUp } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const FactChecker = () => {
   const [claim, setClaim] = useState('');
@@ -15,7 +16,7 @@ const FactChecker = () => {
 
   const fetchRecentChecks = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/fact-checks?limit=10');
+      const response = await axios.get(`${API_BASE_URL}/api/fact-checks?limit=10`);
       setRecentChecks(response.data.fact_checks);
     } catch (error) {
       console.error('Failed to fetch recent checks:', error);
@@ -30,7 +31,7 @@ const FactChecker = () => {
     setResult(null);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/fact-check', {
+      const response = await axios.post(`${API_BASE_URL}/api/fact-check`, {
         claim: claim.trim()
       });
       setResult(response.data);

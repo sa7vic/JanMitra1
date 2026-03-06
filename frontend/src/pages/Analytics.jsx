@@ -6,6 +6,7 @@ import {
   AlertTriangle, Award, Activity, Loader2,
   CheckCircle, MapPin, Network
 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 import KnowledgeGraph from '../components/KnowledgeGraph';
 
 const Analytics = () => {
@@ -21,9 +22,9 @@ const Analytics = () => {
   const fetchAnalytics = async () => {
     try {
       const [statsRes, predictionsRes, reportsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/stats'),
-        axios.get('http://localhost:5000/api/predictions?status=active'),
-        axios.get('http://localhost:5000/api/reports?verified=true&time_range=720')
+        axios.get(`${API_BASE_URL}/api/stats`),
+        axios.get(`${API_BASE_URL}/api/predictions?status=active`),
+        axios.get(`${API_BASE_URL}/api/reports?verified=true&time_range=720`)
       ]);
 
       setStats(statsRes.data);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Network, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../lib/api';
 
 const KnowledgeGraph = () => {
   const [graphData, setGraphData] = useState(null);
@@ -15,7 +16,7 @@ const KnowledgeGraph = () => {
 
   const fetchGraphData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/knowledge-graph');
+      const response = await axios.get(`${API_BASE_URL}/api/knowledge-graph`);
       setGraphData(response.data);
       setLoading(false);
     } catch (err) {

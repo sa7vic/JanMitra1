@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { ArrowRight, Shield, Users, AlertTriangle, FileText, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../lib/api';
 import Hero from '../components/Hero';
 import StatsCounter from '../components/StatsCounter';
 import NewsCard from '../components/NewsCard';
@@ -22,9 +23,9 @@ const Home = () => {
   const fetchHomeData = async () => {
     try {
       const [statsRes, predictionsRes, articlesRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/stats'),
-        axios.get('http://localhost:5000/api/predictions?status=active'),
-        axios.get('http://localhost:5000/api/news?limit=6')
+        axios.get(`${API_BASE_URL}/api/stats`),
+        axios.get(`${API_BASE_URL}/api/predictions?status=active`),
+        axios.get(`${API_BASE_URL}/api/news?limit=6`)
       ]);
 
       setStats(statsRes.data);

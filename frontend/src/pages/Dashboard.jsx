@@ -7,6 +7,7 @@ import {
   AlertTriangle, TrendingUp, Award, MapPin, Bell, 
   Loader2, ArrowRight, CheckCircle, Clock, AlertCircle 
 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -24,7 +25,7 @@ const Dashboard = () => {
 
   const fetchDashboard = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/user/dashboard');
+      const response = await axios.get(`${API_BASE_URL}/api/user/dashboard`);
       setDashboardData(response.data);
     } catch (error) {
       console.error('Failed to fetch dashboard:', error);
@@ -35,7 +36,7 @@ const Dashboard = () => {
 
   const handleActionTaken = async (alertId) => {
     try {
-      await axios.post(`http://localhost:5000/api/user/alerts/${alertId}/action-taken`);
+      await axios.post(`${API_BASE_URL}/api/user/alerts/${alertId}/action-taken`);
       fetchDashboard();
     } catch (error) {
       console.error('Failed to mark action:', error);

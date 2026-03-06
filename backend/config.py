@@ -9,9 +9,20 @@ DATA_DIR = BASE_DIR / 'data'
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'janmitra-dev-secret-key-change-in-production')
-    DEBUG = True
+    DEBUG = os.getenv('DEBUG', 'True') == 'True'
     
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{DATA_DIR}/janmitra.db'
+    # Use PostgreSQL in production (Render), SQLite in development
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if DATABASE_URL:
+        # Fix for SQLAlchemy 1.4+ (Render uses postgres:// but SQLAlchemy needs postgresql://)
+        if DATABASE_URL.startswith('postgres://'):
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    else:
+        # Fallback to SQLite for local development
+        DATA_DIR.mkdir(exist_ok=True)
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{DATA_DIR}/janmitra.db'
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     GROQ_API_KEY = os.getenv('GROQ_API_KEY')
@@ -36,4 +47,6 @@ class Config:
     MAX_TOKENS = 1024
     TEMPERATURE = 0.7
 
-DATA_DIR.mkdir(exist_ok=True)
+# Create data directory only if it doesn't exist (for local SQLite)
+if not os.getenv('DATABASE_URL'):
+    DATA_DIR.mkdir(exist_ok=True)

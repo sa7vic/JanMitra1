@@ -6,6 +6,7 @@ import {
   FileText, Plus, CheckCircle, Clock, XCircle, 
   TrendingUp, MapPin, Calendar, Loader2 
 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const MyReports = () => {
   const [reports, setReports] = useState([]);
@@ -18,7 +19,7 @@ const MyReports = () => {
 
   const fetchMyReports = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/user/dashboard');
+      const response = await axios.get(`${API_BASE_URL}/api/user/dashboard`);
       setReports(response.data.my_reports || []);
     } catch (error) {
       console.error('Failed to fetch reports:', error);

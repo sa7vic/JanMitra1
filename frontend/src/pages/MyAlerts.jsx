@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { AlertTriangle, CheckCircle, XCircle, Clock, Filter, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const MyAlerts = () => {
   const [alerts, setAlerts] = useState([]);
@@ -16,7 +17,7 @@ const MyAlerts = () => {
     setLoading(true);
     try {
       const includeRead = filter === 'all';
-      const response = await axios.get(`http://localhost:5000/api/user/alerts?include_read=${includeRead}`);
+      const response = await axios.get(`${API_BASE_URL}/api/user/alerts?include_read=${includeRead}`);
       setAlerts(response.data.alerts);
     } catch (error) {
       console.error('Failed to fetch alerts:', error);
@@ -27,7 +28,7 @@ const MyAlerts = () => {
 
   const markAsRead = async (alertId) => {
     try {
-      await axios.post(`http://localhost:5000/api/user/alerts/${alertId}/read`);
+      await axios.post(`${API_BASE_URL}/api/user/alerts/${alertId}/read`);
       fetchAlerts();
     } catch (error) {
       console.error('Failed to mark alert as read:', error);
@@ -36,7 +37,7 @@ const MyAlerts = () => {
 
   const dismissAlert = async (alertId) => {
     try {
-      await axios.post(`http://localhost:5000/api/user/alerts/${alertId}/dismiss`);
+      await axios.post(`${API_BASE_URL}/api/user/alerts/${alertId}/dismiss`);
       fetchAlerts();
     } catch (error) {
       console.error('Failed to dismiss alert:', error);
@@ -45,7 +46,7 @@ const MyAlerts = () => {
 
   const markActionTaken = async (alertId) => {
     try {
-      await axios.post(`http://localhost:5000/api/user/alerts/${alertId}/action-taken`);
+      await axios.post(`${API_BASE_URL}/api/user/alerts/${alertId}/action-taken`);
       fetchAlerts();
     } catch (error) {
       console.error('Failed to mark action:', error);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Award, ExternalLink, FileText, CheckCircle, Clock, TrendingUp, Loader2, ChevronRight, X } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const Schemes = () => {
   const [schemes, setSchemes] = useState({ enrolled: [], eligible: [] });
@@ -15,7 +16,7 @@ const Schemes = () => {
 
   const fetchSchemes = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/user/schemes');
+      const response = await axios.get(`${API_BASE_URL}/api/user/schemes`);
       setSchemes(response.data);
     } catch (error) {
       console.error('Failed to fetch schemes:', error);

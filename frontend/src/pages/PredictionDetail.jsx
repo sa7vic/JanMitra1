@@ -7,6 +7,7 @@ import {
   Users, FileText, DollarSign, ChevronLeft, 
   CheckCircle, Loader2, Download 
 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/api';
 
 const PredictionDetail = () => {
   const { id } = useParams();
@@ -21,7 +22,7 @@ const PredictionDetail = () => {
 
   const fetchPredictionDetail = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/predictions/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/api/predictions/${id}`);
       setPrediction(response.data.prediction);
       setRelatedReports(response.data.related_reports || []);
     } catch (error) {
