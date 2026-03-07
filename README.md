@@ -4,6 +4,10 @@ JanMitra is an Applied AI civic-tech project built for **India Innovates 2026** 
 
 ## Links
 
+Demo Link - https://jan-mitra1.vercel.app
+
+Demo Video - https://youtu.be/i6A30mjHDow
+
 ## Problem / Domain
 This repository aligns with the **Digital Democracy / Smart Public Service** direction, focusing on:
 - citizen grievances & reporting
@@ -93,4 +97,5 @@ Abhishek Gupta
 ---
 
 **Note:** This repository is being prepared for submission and demo at India Innovates 2026.
+
 
