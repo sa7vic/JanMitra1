@@ -67,6 +67,31 @@ JanMitra provides two experiences: **Citizen** and **Government**.
 - 70+ relationships mapped
 - 15 government schemes loaded
 
+## Screenshots
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/4f9c1782-54ab-4cf4-9f0b-3772b11990d4" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/afe35b55-53d6-44b9-aad6-fed1c1605bb6" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/562dee9f-796b-45cb-8a8a-464f7822bbe3" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/dd69b71b-0f5c-4d6f-bc88-9905c5adb375" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/ece15672-5b58-401f-b483-4bca1493667b" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/567511f6-bb4e-4355-b967-171e5647d014" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/265b448a-84e4-459f-a6fe-d32686345c44" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/1d3f80d7-80c5-4dba-a26a-ffa15fc7d6f1" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/d216b0fa-8adf-461b-8245-371c7c68b3d6" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/9c38dddd-a8ae-4417-9db6-5edf6b18e908" />
+
+<img width="1918" height="894" alt="image" src="https://github.com/user-attachments/assets/28abd263-f865-4f5e-84e0-2b44431ae03d" />
+
+
 ## Roadmap (India Innovates 2026 readiness)
 These are the key upgrades planned before the finale.
 
@@ -97,5 +122,6 @@ Abhishek Gupta
 ---
 
 **Note:** This repository is being prepared for submission and demo at India Innovates 2026.
+
 
 
