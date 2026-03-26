@@ -67,8 +67,9 @@ with app.app_context():
         {
             'email': 'gov@janmitra.in',
             'password': 'admin123',
-            'name': 'Government Admin',
+            'name': 'National Officer',
             'role': 'government',
+            'gov_level': 'national',
             'phone': '+919999999999',
             'city': 'New Delhi',
             'state': 'Delhi',
@@ -78,16 +79,29 @@ with app.app_context():
         {
             'email': 'officer@janmitra.in',
             'password': 'admin123',
-            'name': 'District Officer',
+            'name': 'District Collector Pune',
             'role': 'government',
+            'gov_level': 'district',
             'phone': '+919999999998',
-            'city': 'Bangalore',
-            'state': 'Karnataka',
+            'city': 'Pune',
+            'district': 'Pune',
+            'state': 'Maharashtra',
             'profile_completed': True,
-            'location': 'Bangalore'
+            'location': 'Pune, Maharashtra'
+        },
+        {
+            'email': 'state.officer@janmitra.in',
+            'password': 'admin123',
+            'name': 'State Officer Maharashtra',
+            'role': 'government',
+            'gov_level': 'state',
+            'phone': '+919999999997',
+            'state': 'Maharashtra',
+            'profile_completed': True,
+            'location': 'Maharashtra'
         }
     ]
-    
+
     for user_data in users_data:
         existing = User.query.filter_by(email=user_data['email']).first()
         if existing:
@@ -103,9 +117,9 @@ with app.app_context():
             user.last_login = datetime.utcnow()
             db.session.add(user)
             print(f"✅ Created user: {user.email}")
-    
+
     db.session.commit()
-    
+
     print("\n" + "="*50)
     print("DEMO USERS CREATED")
     print("="*50)
@@ -114,6 +128,7 @@ with app.app_context():
     print("  • priya@janmitra.in / citizen123 (Student, Delhi)")
     print("  • raj@janmitra.in / citizen123 (Business, Mumbai)")
     print("\n🏛️ GOVERNMENT:")
-    print("  • gov@janmitra.in / admin123 (Central Admin)")
-    print("  • officer@janmitra.in / admin123 (District Officer)")
+    print("  • gov@janmitra.in / admin123 (National Officer)")
+    print("  • state.officer@janmitra.in / admin123 (State Officer Maharashtra)")
+    print("  • officer@janmitra.in / admin123 (District Collector Pune)")
     print("\n")

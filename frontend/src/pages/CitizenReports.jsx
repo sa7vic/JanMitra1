@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../lib/api';
 
 const CitizenReports = () => {
   const [reports, setReports] = useState([]);
+  const [viewing, setViewing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ 
     verified: 'all', 
@@ -26,10 +27,11 @@ const CitizenReports = () => {
       const params = new URLSearchParams();
       if (filter.verified === 'verified') params.append('verified', 'true');
       if (filter.type !== 'all') params.append('type', filter.type);
-      params.append('time_range', filter.time_range);
+      params.append('per_page', '100');
 
-      const response = await axios.get(`${API_BASE_URL}/api/reports?${params.toString()}`);
+      const response = await axios.get(`${API_BASE_URL}/api/government/reports?${params.toString()}`);
       setReports(response.data.reports);
+      setViewing(response.data.viewing || null);
     } catch (error) {
       console.error('Failed to fetch reports:', error);
     } finally {
@@ -38,6 +40,15 @@ const CitizenReports = () => {
   };
 
   const reportTypes = ['price', 'water', 'electricity', 'health', 'infrastructure', 'other'];
+
+  const getViewingLabel = () => {
+    if (!viewing?.gov_level) return 'Government scope unavailable';
+    if (viewing.gov_level === 'national') return 'Viewing: National Dashboard';
+    if (viewing.gov_level === 'state') return `Viewing: State Level (${viewing.state})`;
+    if (viewing.gov_level === 'district') return `Viewing: District Level (${viewing.district})`;
+    if (viewing.gov_level === 'local') return `Viewing: Local Level (${viewing.city})`;
+    return 'Viewing: Government Dashboard';
+  };
 
   if (loading) {
     return (
@@ -60,7 +71,7 @@ const CitizenReports = () => {
               <Users className="w-10 h-10" />
               <span>Citizen Intelligence Reports</span>
             </h1>
-            <p className="text-white/90 text-lg">Ground-level data from citizens across India</p>
+            <p className="text-white/90 text-lg">{getViewingLabel()}</p>
           </div>
         </motion.div>
 

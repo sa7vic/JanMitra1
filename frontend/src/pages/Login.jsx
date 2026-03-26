@@ -22,8 +22,8 @@ const Login = () => {
       const userData = await login(email, password);
       
       // Redirect based on role
-      if (userData.role === 'government') {
-        navigate('/government');
+      if (userData.role === 'government' || userData.role === 'gov') {
+        navigate('/government/dashboard');
       } else {
         navigate('/dashboard');
       }

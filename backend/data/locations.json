@@ -1,0 +1,62 @@
+{
+  "Maharashtra": {
+    "Pune": [
+      "Shivajinagar",
+      "Hinjewadi",
+      "Wakad",
+      "Kothrud"
+    ],
+    "Mumbai": [
+      "Andheri",
+      "Bandra",
+      "Dadar",
+      "Powai"
+    ],
+    "Nagpur": [
+      "Dharampeth",
+      "Sitabuldi",
+      "Sadar"
+    ]
+  },
+  "Delhi": {
+    "New Delhi": [
+      "Chanakyapuri",
+      "Karol Bagh",
+      "Connaught Place"
+    ],
+    "North Delhi": [
+      "Model Town",
+      "Civil Lines",
+      "Rohini"
+    ],
+    "South Delhi": [
+      "Saket",
+      "Hauz Khas",
+      "Greater Kailash"
+    ]
+  },
+  "Karnataka": {
+    "Bengaluru Urban": [
+      "Whitefield",
+      "Indiranagar",
+      "Jayanagar"
+    ],
+    "Mysuru": [
+      "Nazarbad",
+      "Vijayanagar",
+      "Gokulam"
+    ]
+  },
+  "Punjab": {
+    "Ludhiana": [
+      "Model Town",
+      "Civil Lines",
+      "Sarabha Nagar"
+    ],
+    "Amritsar": [
+      "Ranjit Avenue",
+      "Hall Bazaar",
+      "Majitha Road"
+    ]
+  }
+}

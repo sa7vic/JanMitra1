@@ -1,27 +1,335 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Network, Loader2, AlertCircle } from 'lucide-react';
-import axios from 'axios';
-import { API_BASE_URL } from '../lib/api';
+import {
+  AlertCircle,
+  Loader2,
+  Network,
+  Search,
+  Waypoints,
+} from 'lucide-react';
+import cytoscape from 'cytoscape';
+
+import {
+  getGraphNeighbors,
+  getGraphPath,
+  getGraphSubgraph,
+  queryGraphNaturalLanguage,
+  searchGraphEntities,
+} from '../lib/api';
+
+const TYPE_COLORS = {
+  person: '#1d4ed8',
+  place: '#0f766e',
+  event: '#dc2626',
+  policy: '#c2410c',
+  scheme: '#9333ea',
+  group: '#ca8a04',
+  commodity: '#16a34a',
+  indicator: '#be185d',
+  other: '#334155',
+};
+
+const toElements = (graphData) => {
+  const nodes = (graphData.nodes || []).map((node) => ({
+    data: {
+      id: node.id,
+      label: node.id,
+      type: node.type || 'other',
+      description: node.description || '',
+    },
+  }));
+
+  const edges = (graphData.edges || []).map((edge, index) => ({
+    data: {
+      id: `${edge.source}-${edge.target}-${edge.label}-${index}`,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label || 'related_to',
+      weight: edge.weight || 0.5,
+      context: edge.metadata?.context || '',
+    },
+  }));
+
+  return [...nodes, ...edges];
+};
 
 const KnowledgeGraph = () => {
-  const [graphData, setGraphData] = useState(null);
+  const containerRef = useRef(null);
+  const cyRef = useRef(null);
+
+  const [graphData, setGraphData] = useState({ nodes: [], edges: [], paths: [] });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState('');
+  const [explanation, setExplanation] = useState('');
+  const [generatedQuery, setGeneratedQuery] = useState('');
+  const [validationSummary, setValidationSummary] = useState('');
+  const [queryInput, setQueryInput] = useState('How is Modi connected to agriculture?');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedEdge, setSelectedEdge] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const stats = useMemo(() => {
+    const byType = {};
+    graphData.nodes.forEach((node) => {
+      const t = node.type || 'other';
+      byType[t] = (byType[t] || 0) + 1;
+    });
+    return byType;
+  }, [graphData.nodes]);
+
+  const createCytoscape = (data) => {
+    if (!containerRef.current) {
+      return;
+    }
+
+    if (cyRef.current) {
+      cyRef.current.destroy();
+    }
+
+    const elements = toElements(data);
+    cyRef.current = cytoscape({
+      container: containerRef.current,
+      elements,
+      wheelSensitivity: 0.15,
+      style: [
+        {
+          selector: 'node',
+          style: {
+            label: 'data(label)',
+            'font-size': 11,
+            'text-valign': 'center',
+            'text-halign': 'center',
+            color: '#ffffff',
+            'text-outline-width': 2,
+            'text-outline-color': '#0f172a',
+            width: 30,
+            height: 30,
+            'background-color': (ele) => TYPE_COLORS[ele.data('type')] || TYPE_COLORS.other,
+          },
+        },
+        {
+          selector: 'edge',
+          style: {
+            label: 'data(label)',
+            width: 2,
+            'curve-style': 'bezier',
+            'target-arrow-shape': 'triangle',
+            'line-color': '#94a3b8',
+            'target-arrow-color': '#94a3b8',
+            'font-size': 9,
+            color: '#334155',
+            'text-background-color': '#ffffff',
+            'text-background-opacity': 0.9,
+            'text-background-padding': 2,
+          },
+        },
+        {
+          selector: '.faded',
+          style: {
+            opacity: 0.12,
+          },
+        },
+        {
+          selector: '.highlighted',
+          style: {
+            'border-width': 3,
+            'border-color': '#f97316',
+            opacity: 1,
+            width: 38,
+            height: 38,
+          },
+        },
+        {
+          selector: '.path-edge',
+          style: {
+            'line-color': '#f97316',
+            'target-arrow-color': '#f97316',
+            width: 4,
+            opacity: 1,
+          },
+        },
+      ],
+      layout: {
+        name: 'cose',
+        animate: true,
+        fit: true,
+        padding: 28,
+        nodeRepulsion: 120000,
+        idealEdgeLength: 120,
+      },
+    });
+
+    cyRef.current.on('tap', 'node', (event) => {
+      const node = event.target;
+      setSelectedNode(node.data());
+      setSelectedEdge(null);
+
+      cyRef.current.elements().addClass('faded').removeClass('highlighted');
+      const neighborhood = node.closedNeighborhood();
+      neighborhood.removeClass('faded');
+      node.addClass('highlighted');
+    });
+
+    cyRef.current.on('tap', 'edge', (event) => {
+      setSelectedEdge(event.target.data());
+      setSelectedNode(null);
+    });
+
+    cyRef.current.on('tap', (event) => {
+      if (event.target === cyRef.current) {
+        cyRef.current.elements().removeClass('faded highlighted path-edge');
+        setSelectedNode(null);
+        setSelectedEdge(null);
+      }
+    });
+  };
+
+  const renderGraph = (data, explanationText = '') => {
+    setGraphData(data);
+    setExplanation(explanationText || data.explanation || '');
+    setGeneratedQuery(data.generated_query || data.corrected_query || '');
+
+    const validation = data.validation || {};
+    const errors = validation.errors || [];
+    const clarifications = data.clarification || validation.clarifications || [];
+    if (errors.length > 0) {
+      setValidationSummary(`Validation failed: ${errors.join(' | ')}`);
+    } else if (clarifications.length > 0) {
+      setValidationSummary('Ambiguous query: clarification required.');
+    } else {
+      setValidationSummary('Validated against graph schema.');
+    }
+
+    createCytoscape(data);
+  };
+
+  const loadSeedGraph = async () => {
+    try {
+      setLoading(true);
+      const data = await getGraphSubgraph(120, 240);
+      renderGraph(data, data.explanation);
+      setError('');
+    } catch (err) {
+      setError('Failed to load graph data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchGraphData();
+    loadSeedGraph();
   }, []);
 
-  const fetchGraphData = async () => {
+  useEffect(() => {
+    const handle = setTimeout(async () => {
+      const needle = searchInput.trim();
+      if (!needle) {
+        setSearchResults([]);
+        return;
+      }
+      try {
+        const data = await searchGraphEntities(needle, 8);
+        setSearchResults(data.matches || []);
+      } catch (_err) {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
+  const runNaturalLanguageQuery = async () => {
+    const query = queryInput.trim();
+    if (!query) {
+      return;
+    }
+
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/knowledge-graph`);
-      setGraphData(response.data);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load knowledge graph');
-      setLoading(false);
+      setBusy(true);
+      const data = await queryGraphNaturalLanguage(query, 4);
+      if (data.error) {
+        const clarification = (data.clarification || [])
+          .map((item) => `${item.token}: ${item.candidates?.join(', ') || 'no suggestions'}`)
+          .join(' | ');
+        setError(clarification ? `${data.error} ${clarification}` : data.error);
+      } else {
+        setError('');
+      }
+      renderGraph(data, data.explanation || `Query executed: ${query}`);
+
+      if (cyRef.current && data.paths?.length) {
+        highlightPaths(data.paths);
+      }
+    } catch (_err) {
+      setError('Failed to execute graph query');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const highlightPaths = (paths) => {
+    if (!cyRef.current || !paths?.length) {
+      return;
+    }
+
+    const cy = cyRef.current;
+    cy.elements().addClass('faded').removeClass('path-edge highlighted');
+
+    const nodeIds = new Set();
+    const edgeKeys = new Set();
+    paths.forEach((path) => {
+      path.forEach((nodeId) => nodeIds.add(nodeId));
+      for (let i = 0; i < path.length - 1; i += 1) {
+        edgeKeys.add(`${path[i]}:::${path[i + 1]}`);
+      }
+    });
+
+    nodeIds.forEach((nodeId) => {
+      const node = cy.getElementById(nodeId);
+      node.removeClass('faded').addClass('highlighted');
+    });
+
+    cy.edges().forEach((edge) => {
+      const key = `${edge.data('source')}:::${edge.data('target')}`;
+      if (edgeKeys.has(key)) {
+        edge.removeClass('faded').addClass('path-edge');
+      }
+    });
+  };
+
+  const loadNeighborhood = async (entityName) => {
+    try {
+      setBusy(true);
+      const data = await getGraphNeighbors(entityName, 2, 'both', 220);
+      renderGraph(data, data.explanation || `Loaded neighborhood for ${entityName}`);
+    } catch (_err) {
+      setError('Failed to load neighborhood');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runPathQuery = async () => {
+    const parts = queryInput
+      .split('->')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (parts.length !== 2) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      const data = await getGraphPath(parts[0], parts[1], 5);
+      renderGraph(data, data.explanation || `Path query ${parts[0]} -> ${parts[1]}`);
+      highlightPaths(data.paths || []);
+    } catch (_err) {
+      setError('Failed to find path between entities');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -33,194 +341,168 @@ const KnowledgeGraph = () => {
     );
   }
 
-  if (error || !graphData) {
+  if (error) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
         <div className="flex items-center space-x-3 text-red-600">
           <AlertCircle className="w-6 h-6" />
-          <span>{error || 'No graph data available'}</span>
+          <span>{error}</span>
         </div>
       </div>
     );
   }
 
-  const { nodes = [], edges = [] } = graphData;
-
-  // Group nodes by type
-  const nodesByType = nodes.reduce((acc, node) => {
-    const type = node.type || 'other';
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(node);
-    return acc;
-  }, {});
-
-  const types = Object.keys(nodesByType);
-
-  const typeColors = {
-    place: 'bg-blue-100 text-blue-800 border-blue-300',
-    commodity: 'bg-green-100 text-green-800 border-green-300',
-    indicator: 'bg-purple-100 text-purple-800 border-purple-300',
-    policy: 'bg-orange-100 text-orange-800 border-orange-300',
-    event: 'bg-red-100 text-red-800 border-red-300',
-    technology: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    other: 'bg-gray-100 text-gray-800 border-gray-300',
-  };
-
-  const filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter);
-  const filteredEdges = edges.filter(e => 
-    filteredNodes.find(n => n.id === e.source) && 
-    filteredNodes.find(n => n.id === e.target)
-  );
-
-  // Find most connected nodes
-  const connectionCounts = {};
-  edges.forEach(edge => {
-    connectionCounts[edge.source] = (connectionCounts[edge.source] || 0) + 1;
-    connectionCounts[edge.target] = (connectionCounts[edge.target] || 0) + 1;
-  });
-
-  const topNodes = nodes
-    .map(node => ({ ...node, connections: connectionCounts[node.id] || 0 }))
-    .sort((a, b) => b.connections - a.connections)
-    .slice(0, 10);
-
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-5 border-b border-gray-200 bg-gray-50">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
               <Network className="w-6 h-6 text-primary-600" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Knowledge Graph</h3>
-              <p className="text-sm text-gray-600">
-                {nodes.length} entities • {edges.length} relationships
+              <h3 className="text-xl font-bold text-gray-900">Graph Reasoning</h3>
+              <p className="text-xs text-gray-600">
+                {graphData.nodes.length} nodes and {graphData.edges.length} edges loaded
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={loadSeedGraph}
+            className="px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition"
+          >
+            Reset Graph
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-              filter === 'all'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All ({nodes.length})
-          </button>
-          {types.map(type => (
-            <button
-              key={type}
-              onClick={() => setFilter(type)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition capitalize ${
-                filter === type
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {type} ({nodesByType[type].length})
-            </button>
-          ))}
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-700">Natural Language Query</label>
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
+                placeholder="What policies affect farmers?"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+              <button
+                type="button"
+                onClick={runNaturalLanguageQuery}
+                disabled={busy}
+                className="px-3 py-2 rounded-md bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50"
+              >
+                {busy ? 'Running' : 'Run'}
+              </button>
+              <button
+                type="button"
+                onClick={runPathQuery}
+                disabled={busy}
+                className="px-3 py-2 rounded-md bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 disabled:opacity-50"
+              >
+                Path A-&gt;B
+              </button>
+            </div>
+          </div>
+
+          <div className="relative">
+            <label className="text-xs font-semibold text-gray-700">Entity Search (debounced)</label>
+            <div className="mt-1 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
+                <input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search entities"
+                  className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+            </div>
+            {searchResults.length > 0 && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow">
+                {searchResults.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => loadNeighborhood(item.id)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center justify-between"
+                  >
+                    <span>{item.id}</span>
+                    <span className="text-xs text-gray-500">{item.type}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Graph Visualization - Network View */}
-      <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Connected Entities */}
-          <div>
-            <h4 className="text-sm font-bold text-gray-900 mb-4">Most Connected Entities</h4>
-            <div className="space-y-2">
-              {topNodes.map((node, idx) => (
-                <motion.div
-                  key={node.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className={`p-3 rounded-lg border-2 ${typeColors[node.type] || typeColors.other} flex items-center justify-between`}
-                >
-                  <div className="flex-1">
-                    <div className="font-semibold">{node.label}</div>
-                    <div className="text-xs opacity-75">{node.description?.substring(0, 60)}...</div>
-                  </div>
-                  <div className="ml-3 text-right">
-                    <div className="text-2xl font-bold">{node.connections}</div>
-                    <div className="text-xs opacity-75">links</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Key Relationships */}
-          <div>
-            <h4 className="text-sm font-bold text-gray-900 mb-4">Key Relationships</h4>
-            <div className="space-y-3">
-              {filteredEdges.slice(0, 10).map((edge, idx) => {
-                const source = nodes.find(n => n.id === edge.source);
-                const target = nodes.find(n => n.id === edge.target);
-                
-                if (!source || !target) return null;
-
-                const relationshipIcons = {
-                  causes: '→',
-                  affects: '↔',
-                  relates_to: '•',
-                };
-
-                return (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <div className="flex items-center space-x-2 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${typeColors[source.type]}`}>
-                        {source.label}
-                      </span>
-                      <span className="text-gray-400 font-bold">
-                        {relationshipIcons[edge.type] || '•'}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${typeColors[target.type]}`}>
-                        {target.label}
-                      </span>
-                    </div>
-                    {edge.strength && (
-                      <div className="mt-2 flex items-center space-x-2">
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary-500 rounded-full"
-                            style={{ width: `${edge.strength * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-600 font-medium">
-                          {(edge.strength * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-0">
+        <div className="xl:col-span-3 border-r border-gray-200">
+          <div ref={containerRef} className="w-full h-[560px]" />
         </div>
 
-        {/* Stats Summary */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {types.map(type => (
-            <div key={type} className={`p-4 rounded-lg border-2 ${typeColors[type]}`}>
-              <div className="text-2xl font-bold">{nodesByType[type].length}</div>
-              <div className="text-sm opacity-75 capitalize">{type}s</div>
+        <div className="p-4 bg-gray-50">
+          <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+            <Waypoints className="w-4 h-4" />
+            Result Panel
+          </h4>
+
+          <div className="mt-3 space-y-3 text-sm">
+            <div>
+              <div className="font-semibold text-gray-700">Explanation</div>
+              <p className="text-gray-600">{explanation || 'No explanation yet.'}</p>
             </div>
-          ))}
+
+            <div>
+              <div className="font-semibold text-gray-700">Generated Query</div>
+              <p className="text-gray-600 break-words">{generatedQuery || 'Query not generated yet.'}</p>
+            </div>
+
+            <div>
+              <div className="font-semibold text-gray-700">Validation</div>
+              <p className="text-gray-600">{validationSummary || 'No validation summary yet.'}</p>
+            </div>
+
+            <div>
+              <div className="font-semibold text-gray-700">Selected Node</div>
+              <p className="text-gray-600">
+                {selectedNode
+                  ? `${selectedNode.id} (${selectedNode.type})`
+                  : 'Click a node to inspect neighborhood'}
+              </p>
+            </div>
+
+            <div>
+              <div className="font-semibold text-gray-700">Selected Edge</div>
+              <p className="text-gray-600">
+                {selectedEdge
+                  ? `${selectedEdge.source} -[${selectedEdge.label}]-> ${selectedEdge.target}`
+                  : 'Hover/click edge to inspect relation'}
+              </p>
+              {selectedEdge?.context && (
+                <p className="text-xs text-gray-500 mt-1">{selectedEdge.context}</p>
+              )}
+            </div>
+
+            <div>
+              <div className="font-semibold text-gray-700">Type Distribution</div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {Object.entries(stats).slice(0, 8).map(([type, count]) => (
+                  <motion.div
+                    key={type}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="px-2 py-1 rounded bg-white border border-gray-200"
+                  >
+                    <div className="text-xs font-semibold text-gray-700 capitalize">{type}</div>
+                    <div className="text-base font-bold text-gray-900">{count}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

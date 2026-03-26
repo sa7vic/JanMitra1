@@ -108,7 +108,7 @@ def send_whatsapp_message():
         user = User.query.get(int(current_user_id))
         
         # Check if user has permission (government or admin role)
-        if not user or user.role not in ['gov', 'admin']:
+        if not user or user.role not in ['gov', 'government', 'admin']:
             return jsonify({
                 'error': (
                     'Unauthorized. Only government/admin users '
@@ -169,7 +169,7 @@ def get_conversation_history(phone):
         clean_phone = phone.replace('whatsapp:', '').replace('+', '').strip()
         user_phone = user.phone.replace('+', '').strip() if user.phone else ''
         
-        if user.role not in ['gov', 'admin'] and clean_phone != user_phone:
+        if user.role not in ['gov', 'government', 'admin'] and clean_phone != user_phone:
             return jsonify({
                 'error': (
                     'Unauthorized. You can only view your own '
@@ -207,7 +207,7 @@ def get_whatsapp_stats():
         user = User.query.get(int(current_user_id))
         
         # Check if user has permission
-        if not user or user.role not in ['gov', 'admin']:
+        if not user or user.role not in ['gov', 'government', 'admin']:
             return jsonify({
                 'error': (
                     'Unauthorized. Only government/admin users '

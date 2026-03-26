@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { 
   AlertTriangle, MapPin, Calendar, Filter, 
   Loader2, ChevronRight, TrendingUp 
 } from 'lucide-react';
-import { API_BASE_URL } from '../lib/api';
+import { getNews, getPredictions } from '../lib/api';
 
 const AllPredictions = () => {
   const [predictions, setPredictions] = useState([]);
+  const [fallbackArticles, setFallbackArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ severity: 'all', category: 'all' });
   const navigate = useNavigate();
@@ -20,8 +20,13 @@ const AllPredictions = () => {
 
   const fetchPredictions = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/predictions?status=active`);
-      setPredictions(response.data.predictions);
+      const [predictionsData, newsData] = await Promise.all([
+        getPredictions('active'),
+        getNews(12),
+      ]);
+      const activePredictions = predictionsData.predictions || [];
+      setPredictions(activePredictions);
+      setFallbackArticles(activePredictions.length > 0 ? [] : (newsData.articles || []));
     } catch (error) {
       console.error('Failed to fetch predictions:', error);
     } finally {
@@ -198,11 +203,41 @@ const AllPredictions = () => {
               );
             })}
           </div>
+        ) : predictions.length === 0 && fallbackArticles.length > 0 ? (
+          <div className="bg-white rounded-xl p-6 border-2 border-gray-200">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-1">No Active Prediction Event Yet</h3>
+              <p className="text-gray-600 text-sm">Showing latest fetched articles powering the crisis model.</p>
+            </div>
+            <div className="space-y-3">
+              {fallbackArticles.map((article) => (
+                <a
+                  key={article.id}
+                  href={article.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition"
+                >
+                  <h4 className="text-sm font-semibold text-gray-900 line-clamp-2">{article.title}</h4>
+                  <div className="text-xs text-gray-600 mt-2 flex items-center justify-between gap-2">
+                    <span className="capitalize">{article.source || 'Unknown source'}</span>
+                    <span>{article.published_at ? new Date(article.published_at).toLocaleDateString() : '-'}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : predictions.length > 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center border-2 border-gray-200">
+            <AlertTriangle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No Predictions Match Current Filters</h3>
+            <p className="text-gray-600">Try adjusting severity/category filters</p>
+          </div>
         ) : (
           <div className="bg-white rounded-xl p-12 text-center border-2 border-gray-200">
             <AlertTriangle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">No Predictions Found</h3>
-            <p className="text-gray-600">Try adjusting your filters</p>
+            <p className="text-gray-600">No active predictions or fetched articles are available right now.</p>
           </div>
         )}
       </div>

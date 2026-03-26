@@ -9,6 +9,12 @@ const api = axios.create({
   },
 });
 
+const locationCache = {
+  states: null,
+  districts: new Map(),
+  cities: new Map(),
+};
+
 // Attach JWT from localStorage on every request when available
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -21,6 +27,40 @@ api.interceptors.request.use((config) => {
 export const getStats = async () => {
   const response = await api.get('/api/stats');
   return response.data;
+};
+
+export const getStates = async () => {
+  if (locationCache.states) {
+    return locationCache.states;
+  }
+  const response = await api.get('/api/locations/states');
+  locationCache.states = response.data.states || [];
+  return locationCache.states;
+};
+
+export const getDistricts = async (state) => {
+  if (!state) return [];
+  if (locationCache.districts.has(state)) {
+    return locationCache.districts.get(state);
+  }
+  const response = await api.get('/api/locations/districts', { params: { state } });
+  const districts = response.data.districts || [];
+  locationCache.districts.set(state, districts);
+  return districts;
+};
+
+export const getCities = async (state, district) => {
+  if (!state || !district) return [];
+  const key = `${state}::${district}`;
+  if (locationCache.cities.has(key)) {
+    return locationCache.cities.get(key);
+  }
+  const response = await api.get('/api/locations/cities', {
+    params: { state, district },
+  });
+  const cities = response.data.cities || [];
+  locationCache.cities.set(key, cities);
+  return cities;
 };
 
 export const askQuestion = async (question) => {
@@ -52,6 +92,52 @@ export const getKnowledgeGraph = async () => {
   return response.data;
 };
 
+export const getGraphSubgraph = async (limitNodes = 120, limitEdges = 240) => {
+  const response = await api.get('/api/graph/subgraph', {
+    params: { limit_nodes: limitNodes, limit_edges: limitEdges },
+  });
+  return response.data;
+};
+
+export const queryGraphNaturalLanguage = async (query, maxDepth = 4) => {
+  const response = await api.post('/api/graph/query', {
+    query,
+    max_depth: maxDepth,
+  });
+  return response.data;
+};
+
+export const getGraphPath = async (source, target, maxDepth = 5) => {
+  const response = await api.get('/api/graph/path', {
+    params: { source, target, max_depth: maxDepth },
+  });
+  return response.data;
+};
+
+export const getGraphNeighbors = async (
+  entity,
+  depth = 1,
+  direction = 'both',
+  limitNodes = 250
+) => {
+  const response = await api.get('/api/graph/neighbors', {
+    params: {
+      entity,
+      depth,
+      direction,
+      limit_nodes: limitNodes,
+    },
+  });
+  return response.data;
+};
+
+export const searchGraphEntities = async (q, limit = 10) => {
+  const response = await api.get('/api/graph/search', {
+    params: { q, limit },
+  });
+  return response.data;
+};
+
 export const getPredictions = async (status = 'active') => {
   const response = await api.get('/api/predictions', { params: { status } });
   return response.data;
@@ -59,6 +145,58 @@ export const getPredictions = async (status = 'active') => {
 
 export const collectData = async () => {
   const response = await api.post('/api/collect-data');
+  return response.data;
+};
+
+export const getGovernmentReports = async (params = {}) => {
+  const response = await api.get('/api/government/reports', { params });
+  return response.data;
+};
+
+export const getGovernmentReportMapData = async (params = {}) => {
+  const response = await api.get('/api/government/reports/map-data', { params });
+  return response.data;
+};
+
+export const getGovernmentReportGeoAnalytics = async (params = {}) => {
+  const response = await api.get('/api/government/reports/geo/analytics', { params });
+  return response.data;
+};
+
+export const getGovernmentReportNearby = async (params = {}) => {
+  const response = await api.get('/api/government/reports/geo/nearby', { params });
+  return response.data;
+};
+
+export const geocodeAddress = async (query, limit = 5) => {
+  const response = await api.post('/api/geocode', { query, limit });
+  return response.data;
+};
+
+export const reverseGeocode = async (latitude, longitude) => {
+  const response = await api.get('/api/reverse-geocode', {
+    params: { latitude, longitude },
+  });
+  return response.data;
+};
+
+export const getReportDetail = async (reportId) => {
+  const response = await api.get(`/api/reports/${reportId}`);
+  return response.data;
+};
+
+export const getEligibleAssignees = async (reportId) => {
+  const response = await api.get(`/api/government/reports/${reportId}/eligible-assignees`);
+  return response.data;
+};
+
+export const assignGovernmentReport = async (reportId, payload) => {
+  const response = await api.post(`/api/government/reports/${reportId}/assign`, payload);
+  return response.data;
+};
+
+export const updateGovernmentReportStatus = async (reportId, status) => {
+  const response = await api.post(`/api/government/reports/${reportId}/status`, { status });
   return response.data;
 };
 

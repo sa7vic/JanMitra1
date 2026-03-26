@@ -1,0 +1,153 @@
+[
+	{
+		"source_id": "geo_un_news",
+		"name": "UN News",
+		"domain": "geopolitics",
+		"category": "diplomacy",
+		"type": "rss",
+		"url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+		"enabled": true,
+		"rate_limit_rpm": 20,
+		"retry_attempts": 3,
+		"retry_backoff_seconds": 1.5,
+		"max_items": 20,
+		"priority_weight": 1.0
+	},
+	{
+		"source_id": "geo_mea_press",
+		"name": "MEA Press Releases",
+		"domain": "geopolitics",
+		"category": "foreign_affairs",
+		"type": "web",
+		"url": "https://www.mea.gov.in/press-releases.htm",
+		"enabled": true,
+		"rate_limit_rpm": 6,
+		"retry_attempts": 2,
+		"max_items": 12,
+		"parser": {
+			"article_selector": ".listData li, .listing li, article",
+			"title_selector": "a, h2, h3",
+			"link_selector": "a",
+			"summary_selector": "p"
+		}
+	},
+	{
+		"source_id": "climate_imd",
+		"name": "IMD Alerts",
+		"domain": "climate",
+		"category": "weather",
+		"type": "rss",
+		"url": "https://mausam.imd.gov.in/backend/assets/pdf/rss.xml",
+		"enabled": true,
+		"rate_limit_rpm": 10,
+		"retry_attempts": 2,
+		"max_items": 15,
+		"priority_weight": 0.95
+	},
+	{
+		"source_id": "climate_reliefweb",
+		"name": "ReliefWeb India",
+		"domain": "climate",
+		"category": "disaster_response",
+		"type": "api",
+		"enabled": true,
+		"rate_limit_rpm": 8,
+		"retry_attempts": 3,
+		"max_items": 25,
+		"api": {
+			"provider": "reliefweb",
+			"url": "https://api.reliefweb.int/v1/reports",
+			"payload": {
+				"appname": "janmitra-intel",
+				"profile": "list",
+				"preset": "latest",
+				"limit": 25,
+				"query": {
+					"value": "India flood cyclone heatwave"
+				},
+				"fields": {
+					"include": [
+						"title",
+						"url",
+						"body",
+						"body-html",
+						"date"
+					]
+				}
+			}
+		}
+	},
+	{
+		"source_id": "econ_rbi",
+		"name": "RBI Notifications",
+		"domain": "economics",
+		"category": "monetary_policy",
+		"type": "rss",
+		"url": "https://www.rbi.org.in/Scripts/RSS.aspx?Id=22",
+		"enabled": true,
+		"rate_limit_rpm": 12,
+		"retry_attempts": 2,
+		"max_items": 20,
+		"priority_weight": 0.9
+	},
+	{
+		"source_id": "econ_worldbank_inflation",
+		"name": "World Bank Inflation API",
+		"domain": "economics",
+		"category": "macro_indicators",
+		"type": "api",
+		"enabled": true,
+		"rate_limit_rpm": 15,
+		"retry_attempts": 2,
+		"max_items": 10,
+		"api": {
+			"provider": "worldbank",
+			"url": "https://api.worldbank.org/v2/country/IN/indicator/FP.CPI.TOTL.ZG?format=json&per_page=20"
+		}
+	},
+	{
+		"source_id": "def_pib",
+		"name": "PIB Defence",
+		"domain": "defense",
+		"category": "national_security",
+		"type": "rss",
+		"url": "https://www.pib.gov.in/RssMain.aspx?ModId=6&RegId=3&Lang=1",
+		"enabled": true,
+		"rate_limit_rpm": 12,
+		"retry_attempts": 2,
+		"max_items": 20,
+		"priority_weight": 1.0
+	},
+	{
+		"source_id": "tech_meity",
+		"name": "MeitY Updates",
+		"domain": "technology",
+		"category": "digital_policy",
+		"type": "web",
+		"url": "https://www.meity.gov.in/whats-new",
+		"enabled": true,
+		"rate_limit_rpm": 6,
+		"retry_attempts": 2,
+		"max_items": 15,
+		"priority_weight": 0.8,
+		"parser": {
+			"article_selector": ".view-content .views-row, article, li",
+			"title_selector": "a, h2, h3",
+			"link_selector": "a",
+			"summary_selector": "p"
+		}
+	},
+	{
+		"source_id": "tech_startup_india",
+		"name": "Startup India Blog",
+		"domain": "technology",
+		"category": "innovation",
+		"type": "rss",
+		"url": "https://www.startupindia.gov.in/rss.xml",
+		"enabled": true,
+		"rate_limit_rpm": 10,
+		"retry_attempts": 2,
+		"max_items": 15,
+		"priority_weight": 0.75
+	}
+]

@@ -23,7 +23,7 @@ const Navbar = () => {
     { name: 'Schemes', path: '/schemes', protected: true, roles: ['citizen'] },
     { name: 'Fact Check', path: '/fact-check' },
     { name: 'Report Issue', path: '/report', protected: true, roles: ['citizen'] },
-    { name: 'Command Center', path: '/government', protected: true, roles: ['government'] },
+    { name: 'Command Center', path: '/government/dashboard', protected: true, roles: ['government', 'gov'] },
   ];
 
   const filteredNavItems = navItems.filter(item => {

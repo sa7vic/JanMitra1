@@ -10,18 +10,35 @@ class CitizenIntel:
         user = User.query.get(user_id)
         if not user:
             return None
+
+        raw_data = report_data.get('data', {})
+        if isinstance(raw_data, str):
+            try:
+                raw_data = json.loads(raw_data)
+            except json.JSONDecodeError:
+                raw_data = {}
+
+        def _safe_float(value):
+            if value is None or value == '':
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
         
         report = CitizenReport(
             user_id=user_id,
             report_type=report_data.get('report_type'),
             title=report_data.get('title'),
             description=report_data.get('description'),
-            data=json.dumps(report_data.get('data', {})),
+            data=json.dumps(raw_data),
             location=report_data.get('location') or user.location,
             state=report_data.get('state') or user.state,
+            district=report_data.get('district') or user.district,
             city=report_data.get('city') or user.city,
-            latitude=report_data.get('latitude'),
-            longitude=report_data.get('longitude'),
+            latitude=_safe_float(report_data.get('latitude')),
+            longitude=_safe_float(report_data.get('longitude')),
+            image_url=report_data.get('image_url') or report_data.get('photo_url'),
             photo_url=report_data.get('photo_url')
         )
         
@@ -107,6 +124,9 @@ class CitizenIntel:
             
             if filters.get('state'):
                 query = query.filter_by(state=filters['state'])
+
+            if filters.get('district'):
+                query = query.filter_by(district=filters['district'])
             
             if filters.get('report_type'):
                 query = query.filter_by(report_type=filters['report_type'])

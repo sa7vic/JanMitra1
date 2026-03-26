@@ -81,6 +81,7 @@ const MyAlerts = () => {
     location_based: 'Location Alert',
     occupation_based: 'Occupation Alert',
     health: 'Health Alert',
+    realtime_economic: 'Real-time Economic Alert',
     economy: 'Economic Alert',
     weather: 'Weather Alert'
   };

@@ -14,10 +14,14 @@ import ReportIssue from './pages/ReportIssue';
 import MyReports from './pages/MyReports';
 import Profile from './pages/Profile';
 import Government from './pages/Government';
+import GovernmentDashboard from './pages/GovernmentDashboard';
+import ReportDetail from './pages/ReportDetail';
 import PredictionDetail from './pages/PredictionDetail';
 import AllPredictions from './pages/AllPredictions';
 import CitizenReports from './pages/CitizenReports';
 import Analytics from './pages/Analytics';
+
+const GOVERNMENT_ROLES = ['government', 'gov'];
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -116,7 +120,25 @@ function AppContent() {
         <Route
           path="/government"
           element={
-            <ProtectedRoute allowedRoles={['government']}>
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
+              <Navigate to="/government/dashboard" replace />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/government/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
+              <GovernmentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/government/command-center"
+          element={
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
               <Government />
             </ProtectedRoute>
           }
@@ -125,7 +147,7 @@ function AppContent() {
         <Route
           path="/government/predictions"
           element={
-            <ProtectedRoute allowedRoles={['government']}>
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
               <AllPredictions />
             </ProtectedRoute>
           }
@@ -134,7 +156,7 @@ function AppContent() {
         <Route
           path="/government/prediction/:id"
           element={
-            <ProtectedRoute allowedRoles={['government']}>
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
               <PredictionDetail />
             </ProtectedRoute>
           }
@@ -143,8 +165,17 @@ function AppContent() {
         <Route
           path="/government/reports"
           element={
-            <ProtectedRoute allowedRoles={['government']}>
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
               <CitizenReports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/:id"
+          element={
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
+              <ReportDetail />
             </ProtectedRoute>
           }
         />
@@ -152,7 +183,7 @@ function AppContent() {
         <Route
           path="/government/analytics"
           element={
-            <ProtectedRoute allowedRoles={['government']}>
+            <ProtectedRoute allowedRoles={GOVERNMENT_ROLES}>
               <Analytics />
             </ProtectedRoute>
           }

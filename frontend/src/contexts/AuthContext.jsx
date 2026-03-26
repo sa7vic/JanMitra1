@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, name, role = 'citizen') => {
+  const register = async (email, password, name, role = 'citizen', extra = {}) => {
     try {
       localStorage.removeItem('token');
       delete axios.defaults.headers.common['Authorization'];
@@ -76,6 +76,7 @@ export const AuthProvider = ({ children }) => {
         password,
         name,
         role,
+        ...extra,
       });
       
       const { token, user: userData } = response.data;
